@@ -1,0 +1,18 @@
+{
+  "name": "supplier-export-woocommerce",
+  "version": "1.0.0",
+  "description": "BuyAdwiser Supplier export for Woocommerce",
+  "author": "BuyAdwiser",
+  "contributors": [
+    {
+      "name": "Marijus Planciunas",
+      "email": "yozaz.mandac@gmail.com"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/buyadwiser/supplier-export-woocommerce"
+  },
+  "private": true,
+  "license": "UNLICENSED"
+}

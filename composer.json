@@ -1,0 +1,11 @@
+{
+    "name": "buyadwiser/supplier-export-woocommerce",
+    "description": "WooCommerce export plugin for BuyAdwiser project",
+    "type": "project",
+    "license": "proprietary",
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "require": {
+        "php": ">=8.2"
+    }
+}
