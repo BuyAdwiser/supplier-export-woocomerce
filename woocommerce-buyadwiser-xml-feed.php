@@ -214,15 +214,21 @@ function generate_buyadwiser_xml_feed() {
                 }
                 $product_node->addChild('category_path')->addCData( $category_path );
 
-                // Tags (Example: comma-separated or individual nodes)
+                // Tags
                 $tag_names = wp_get_post_terms($product->get_id(), 'product_tag', array('fields' => 'names'));
                 if (!empty($tag_names)) {
-                    // Option 1: Comma-separated
-                    // $product_node->addChild('tags')->addCData( implode(', ', $tag_names) );
-                    // Option 2: Individual nodes
                      $tags_node = $product_node->addChild('tags');
                      foreach ($tag_names as $tag_name) {
                          $tags_node->addChild('tag')->addCData( $tag_name );
+                     }
+                }
+
+                // Brands
+                $brand_names = wp_get_post_terms($product->get_id(), 'product_brand', array('fields' => 'names'));
+                if (!empty($brand_names)) {
+                     $brands_node = $product_node->addChild('brand_tags');
+                     foreach ($brand_names as $brand_name) {
+                        $brands_node->addChild('brand')->addCData( $brand_name );
                      }
                 }
 
