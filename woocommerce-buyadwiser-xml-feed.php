@@ -12,6 +12,7 @@
  * Domain Path:       /languages
  * WC requires at least: 3.0
  * WC tested up to:   9.0
+ * HPOS compatible: true
  */
 
 // Exit if accessed directly.
