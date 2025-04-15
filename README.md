@@ -1,1 +1,1 @@
-# supplier-export
+# Products export from WooCommerce system
