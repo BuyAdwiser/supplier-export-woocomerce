@@ -456,7 +456,6 @@ class WC_BuyAdwiser_Feed_Generator {
                     }
                 }
             }
-                    }
         }
         
         // Check for brand/EAN in custom fields if not found in attributes
