@@ -49,8 +49,14 @@ class WC_BuyAdwiser_Feed_Generator {
                     continue;
                 }
                 
-                // Add product to XML
-                $this->add_product_to_xml( $xml, $product );
+                // Process based on variations format setting
+                $variations_format = isset( $this->options['variations_format'] ) ? $this->options['variations_format'] : 'separate';
+                
+                // For variable products with nested format, skip processing here - they'll be handled in add_product_to_xml
+                if ( $variations_format === 'separate' || ! $product->is_type( 'variable' ) ) {
+                    // Add product to XML
+                    $this->add_product_to_xml( $xml, $product );
+                }
             }
         }
         
@@ -97,6 +103,7 @@ class WC_BuyAdwiser_Feed_Generator {
         $query = new WP_Query( $args );
         
         $products = array();
+        $variations_format = isset( $this->options['variations_format'] ) ? $this->options['variations_format'] : 'separate';
         
         if ( $query->have_posts() ) {
             while ( $query->have_posts() ) {
@@ -111,8 +118,8 @@ class WC_BuyAdwiser_Feed_Generator {
                     
                     $products[] = $product;
                     
-                    // Handle variable products - add variations as separate entries
-                    if ( $product->is_type( 'variable' ) ) {
+                    // Handle variable products differently based on format setting
+                    if ( $product->is_type( 'variable' ) && $variations_format === 'separate' ) {
                         $variations = $product->get_available_variations();
                         
                         foreach ( $variations as $variation ) {
@@ -185,6 +192,67 @@ class WC_BuyAdwiser_Feed_Generator {
         
         // === Attributes and Custom Fields ===
         $this->add_attribute_data( $product_node, $product );
+        
+        // === Handle Variable Products with Nested Format ===
+        $variations_format = isset( $this->options['variations_format'] ) ? $this->options['variations_format'] : 'separate';
+        
+        if ( $product->is_type( 'variable' ) && $variations_format === 'nested' ) {
+            $this->add_variations_to_product( $product_node, $product );
+        }
+    }
+    
+    /**
+     * Add variations as nested elements to a variable product
+     *
+     * @param SimpleXMLElementExtended $product_node
+     * @param WC_Product_Variable $product
+     */
+    protected function add_variations_to_product( $product_node, $product ) {
+        $variations = $product->get_available_variations();
+        
+        if ( ! empty( $variations ) ) {
+            $variations_node = $product_node->addChild( 'variations' );
+            
+            foreach ( $variations as $variation_data ) {
+                $variation_id = $variation_data['variation_id'];
+                $variation_product = wc_get_product( $variation_id );
+                
+                if ( $variation_product && $variation_product->get_price() ) {
+                    $variation_node = $variations_node->addChild( 'variation' );
+                    
+                    // Add core identification
+                    $variation_node->addChild( 'internal_id', $variation_product->get_id() );
+                    
+                    $sku = $variation_product->get_sku();
+                    if ( ! empty( $sku ) ) {
+                        $variation_node->addChild( 'sku', esc_attr( $sku ) );
+                    }
+                    
+                    // Add name and URL
+                    $variation_node->addChild( 'name' )->addCData( $variation_product->get_name() );
+                    $variation_node->addChild( 'url', esc_url( $variation_product->get_permalink() ) );
+                    
+                    // Add pricing
+                    $this->add_pricing_data( $variation_node, $variation_product );
+                    
+                    // Add inventory
+                    $this->add_inventory_data( $variation_node, $variation_product );
+                    
+                    // Add shipping if available
+                    if ( $variation_product->get_weight() || $variation_product->get_dimensions( false ) ) {
+                        $this->add_shipping_data( $variation_node, $variation_product );
+                    }
+                    
+                    // Add image if different from parent
+                    if ( $variation_product->get_image_id() ) {
+                        $this->add_image_data( $variation_node, $variation_product );
+                    }
+                    
+                    // Add attributes
+                    $this->add_attribute_data( $variation_node, $variation_product );
+                }
+            }
+        }
     }
     
     /**
@@ -396,7 +464,7 @@ class WC_BuyAdwiser_Feed_Generator {
             if ( $term && ! is_wp_error( $term ) ) {
                 $parents = get_ancestors( $term->term_id, 'product_cat', 'taxonomy' );
                 $parents = array_reverse( $parents );
-                $path_parts = [];
+                $path_parts = array();
                 
                 foreach ( $parents as $parent_id ) {
                     $parent_term = get_term( $parent_id, 'product_cat' );

@@ -122,6 +122,7 @@ class WC_BuyAdwiser_Feed {
             'ip_whitelist'      => '',
             'limit_results'     => 'no',
             'results_limit'     => 1000,
+            'variations_format' => 'separate',
             'enable_caching'    => 'yes',
             'cache_time'        => 15 // minutes
         ) );
@@ -308,6 +309,7 @@ class WC_BuyAdwiser_Feed {
                 'ip_whitelist'      => '',
                 'limit_results'     => 'no',
                 'results_limit'     => 1000,
+                'variations_format' => 'separate',
                 'enable_caching'    => 'yes',
                 'cache_time'        => 15
             ) );

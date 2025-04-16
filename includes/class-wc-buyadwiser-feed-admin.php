@@ -93,6 +93,15 @@ class WC_BuyAdwiser_Feed_Admin {
             'wc_buyadwiser_feed_general'
         );
         
+        // Product variation display format
+        add_settings_field(
+            'wc_buyadwiser_feed_variations_format',
+            __( 'Variable Products Format', 'wc-buyadwiser-feed' ),
+            array( $this, 'variations_format_field_callback' ),
+            'wc-buyadwiser-feed',
+            'wc_buyadwiser_feed_general'
+        );
+        
         // Cache settings section
         add_settings_section(
             'wc_buyadwiser_feed_cache',
@@ -140,6 +149,11 @@ class WC_BuyAdwiser_Feed_Admin {
         
         // Results Limit
         $sanitized['results_limit'] = isset( $input['results_limit'] ) ? absint( $input['results_limit'] ) : 1000;
+        
+        // Variable Products Format
+        $sanitized['variations_format'] = isset( $input['variations_format'] ) && in_array( $input['variations_format'], array( 'separate', 'nested' ) ) 
+            ? $input['variations_format'] 
+            : 'separate';
         
         // Enable Caching
         $sanitized['enable_caching'] = isset( $input['enable_caching'] ) ? 'yes' : 'no';
@@ -223,6 +237,22 @@ class WC_BuyAdwiser_Feed_Admin {
             <input type="number" name="wc_buyadwiser_feed_options[results_limit]" value="<?php echo esc_attr( $results_limit ); ?>" min="1" step="1" class="small-text">
         </label>
         <p class="description"><?php esc_html_e( 'Limits the feed to the specified number of newest products.', 'wc-buyadwiser-feed' ); ?></p>
+        <?php
+    }
+    
+    /**
+     * Variable Products Format field callback
+     */
+    public function variations_format_field_callback() {
+        $options = get_option( 'wc_buyadwiser_feed_options' );
+        $variations_format = isset( $options['variations_format'] ) ? $options['variations_format'] : 'separate';
+        
+        ?>
+        <select name="wc_buyadwiser_feed_options[variations_format]" class="regular-text">
+            <option value="separate" <?php selected( $variations_format, 'separate' ); ?>><?php esc_html_e( 'Separate products (variations as individual products)', 'wc-buyadwiser-feed' ); ?></option>
+            <option value="nested" <?php selected( $variations_format, 'nested' ); ?>><?php esc_html_e( 'Nested variations (variations within parent product)', 'wc-buyadwiser-feed' ); ?></option>
+        </select>
+        <p class="description"><?php esc_html_e( 'Controls how variable products and their variations are presented in the XML feed.', 'wc-buyadwiser-feed' ); ?></p>
         <?php
     }
     
