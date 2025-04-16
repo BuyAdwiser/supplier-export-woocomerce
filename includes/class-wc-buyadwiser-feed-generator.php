@@ -194,35 +194,95 @@ class WC_BuyAdwiser_Feed_Generator {
      * @param WC_Product $product
      */
     protected function add_pricing_data( $product_node, $product ) {
-        // Regular price
-        $regular_price = $product->get_regular_price();
-        if ( ! empty( $regular_price ) ) {
-            $product_node->addChild( 'regular_price', esc_attr( wc_format_decimal( $regular_price, 2 ) ) );
+        // Handle variable products differently
+        if ( $product->is_type( 'variable' ) ) {
+            // Get all variations
+            $variations = $product->get_available_variations();
+            
+            if ( ! empty( $variations ) ) {
+                $regular_prices = array();
+                $sale_prices = array();
+                
+                // Collect all variation prices
+                foreach ( $variations as $variation ) {
+                    $variation_id = $variation['variation_id'];
+                    $variation_obj = wc_get_product( $variation_id );
+                    
+                    if ( $variation_obj ) {
+                        $regular_price = $variation_obj->get_regular_price();
+                        $sale_price = $variation_obj->get_sale_price();
+                        
+                        if ( ! empty( $regular_price ) ) {
+                            $regular_prices[] = (float) $regular_price;
+                        }
+                        
+                        if ( ! empty( $sale_price ) ) {
+                            $sale_prices[] = (float) $sale_price;
+                        } else if ( ! empty( $regular_price ) ) {
+                            // If no sale price, use regular price for min/max calculation
+                            $sale_prices[] = (float) $regular_price;
+                        }
+                    }
+                }
+                
+                // Get min regular price
+                if ( ! empty( $regular_prices ) ) {
+                    $min_regular_price = min( $regular_prices );
+                    $product_node->addChild( 'regular_price', esc_attr( wc_format_decimal( $min_regular_price, 2 ) ) );
+                }
+                
+                // Get min sale price
+                if ( ! empty( $sale_prices ) ) {
+                    $min_sale_price = min( $sale_prices );
+                    
+                    // Only add sale price if it's different from regular price
+                    if ( ! empty( $min_regular_price ) && $min_sale_price < $min_regular_price ) {
+                        $product_node->addChild( 'sale_price', esc_attr( wc_format_decimal( $min_sale_price, 2 ) ) );
+                    }
+                }
+                
+                // Set on_sale flag
+                $on_sale = false;
+                if ( ! empty( $min_sale_price ) && ! empty( $min_regular_price ) && $min_sale_price < $min_regular_price ) {
+                    $on_sale = true;
+                }
+                $product_node->addChild( 'on_sale', $on_sale ? 'true' : 'false' );
+            }
+        } else {
+            // Regular products (simple, variations, etc.)
+            
+            // Regular price
+            $regular_price = $product->get_regular_price();
+            if ( ! empty( $regular_price ) ) {
+                $product_node->addChild( 'regular_price', esc_attr( wc_format_decimal( $regular_price, 2 ) ) );
+            }
+            
+            // Sale price
+            $sale_price = $product->get_sale_price();
+            if ( ! empty( $sale_price ) ) {
+                $product_node->addChild( 'sale_price', esc_attr( wc_format_decimal( $sale_price, 2 ) ) );
+            }
+            
+            // On sale status
+            $product_node->addChild( 'on_sale', $product->is_on_sale() ? 'true' : 'false' );
         }
         
-        // Sale price
-        $sale_price = $product->get_sale_price();
-        if ( ! empty( $sale_price ) ) {
-            $product_node->addChild( 'sale_price', esc_attr( wc_format_decimal( $sale_price, 2 ) ) );
-        }
-        
-        // Current price including tax if applicable
+        // Current price including tax if applicable - works for all product types
         $display_price = wc_get_price_to_display( $product );
         $product_node->addChild( 'price', esc_attr( wc_format_decimal( $display_price, 2 ) ) );
         
-        // On sale status
-        $product_node->addChild( 'on_sale', $product->is_on_sale() ? 'true' : 'false' );
-        
-        // Sale dates
-        $sale_start = $product->get_date_on_sale_from();
-        $sale_end = $product->get_date_on_sale_to();
-        
-        if ( $sale_start ) {
-            $product_node->addChild( 'sale_price_effective_date_start', $sale_start->date( 'Y-m-d' ) );
-        }
-        
-        if ( $sale_end ) {
-            $product_node->addChild( 'sale_price_effective_date_end', $sale_end->date( 'Y-m-d' ) );
+        // Sale dates - only for non-variable products
+        if ( ! $product->is_type( 'variable' ) ) {
+            $sale_start = $product->get_date_on_sale_from();
+            $sale_end = $product->get_date_on_sale_to();
+            
+            if ( $sale_start ) {
+                $product_node->addChild( 'sale_price_effective_date_start', $sale_start->date( 'Y-m-d' ) );
+            }
+            
+            if ( $sale_end ) {
+                $product_node->addChild( 'sale_price_effective_date_end', $sale_end->date( 'Y-m-d' ) );
+            }
         }
         
         // Tax information
