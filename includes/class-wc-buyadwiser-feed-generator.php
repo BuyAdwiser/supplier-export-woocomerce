@@ -49,14 +49,8 @@ class WC_BuyAdwiser_Feed_Generator {
                     continue;
                 }
                 
-                // Process based on variations format setting
-                $variations_format = isset( $this->options['variations_format'] ) ? $this->options['variations_format'] : 'separate';
-                
-                // For variable products with nested format, skip processing here - they'll be handled in add_product_to_xml
-                if ( $variations_format === 'separate' || ! $product->is_type( 'variable' ) ) {
-                    // Add product to XML
-                    $this->add_product_to_xml( $xml, $product );
-                }
+                // Add product to XML
+                $this->add_product_to_xml( $xml, $product );
             }
         }
         
@@ -116,9 +110,10 @@ class WC_BuyAdwiser_Feed_Generator {
                         continue;
                     }
                     
+                    // Always add the product (whether it's simple, variable, etc.)
                     $products[] = $product;
                     
-                    // Handle variable products differently based on format setting
+                    // Only add variations as separate entries if using 'separate' format
                     if ( $product->is_type( 'variable' ) && $variations_format === 'separate' ) {
                         $variations = $product->get_available_variations();
                         
