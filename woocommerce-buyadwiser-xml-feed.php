@@ -12,7 +12,14 @@
  * Domain Path:       /languages
  * WC requires at least: 3.0
  * WC tested up to:   9.0
- * HPOS compatible:   true
+ * Requires PHP:      7.2
+ * Requires at least: 5.0
+ * 
+ * WooCommerce HPOS Compatibility
+ * @package WooCommerce\Admin
+ * WC tested up to: 9.0
+ * COT supported: true
+ * HPOS supported: true
  */
 
 // Exit if accessed directly
@@ -83,6 +90,9 @@ class WC_BuyAdwiser_Feed {
         
         // Load text domain
         add_action( 'plugins_loaded', array( $this, 'load_plugin_textdomain' ) );
+        
+        // Declare HPOS compatibility
+        add_action( 'before_woocommerce_init', array( $this, 'declare_hpos_compatibility' ) );
     }
     
     /**
@@ -92,6 +102,7 @@ class WC_BuyAdwiser_Feed {
         define( 'WC_BUYADWISER_FEED_VERSION', self::VERSION );
         define( 'WC_BUYADWISER_FEED_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
         define( 'WC_BUYADWISER_FEED_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+        define( 'WC_BUYADWISER_FEED_PLUGIN_FILE', __FILE__ );
     }
     
     /**
@@ -320,6 +331,19 @@ class WC_BuyAdwiser_Feed {
         
         // Clear cache
         $this->clear_xml_feed_cache();
+    }
+    
+    /**
+     * Declare HPOS compatibility
+     */
+    public function declare_hpos_compatibility() {
+        if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) ) {
+            // Declare compatibility with Custom Order Tables (HPOS)
+            \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', plugin_basename( WC_BUYADWISER_FEED_PLUGIN_FILE ), true );
+            
+            // Declare compatibility with cart and checkout blocks
+            \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'cart_checkout_blocks', plugin_basename( WC_BUYADWISER_FEED_PLUGIN_FILE ), true );
+        }
     }
 }
 

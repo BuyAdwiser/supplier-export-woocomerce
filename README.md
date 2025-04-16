@@ -86,6 +86,13 @@ add_filter('wc_buyadwiser_feed_query_args', function($args) {
 - WooCommerce 3.0 or higher
 - PHP 7.2 or higher
 
+## WooCommerce Compatibility
+
+This plugin is fully compatible with:
+- WooCommerce HPOS (High-Performance Order Storage)
+- Custom Order Tables (COT)
+- WooCommerce Blocks (Cart and Checkout)
+
 ## License
 
 This plugin is licensed under the GPL v2 or later.
@@ -102,6 +109,8 @@ For support inquiries, please visit https://visosnuolaidos.lt
 - Added admin settings page
 - Added IP whitelisting feature
 - Added product limiting feature
+- Added full HPOS (High-Performance Order Storage) compatibility
+- Added WooCommerce Blocks compatibility
 
 ### 1.0.0
 - Initial release

@@ -25,7 +25,7 @@ class WC_BuyAdwiser_Feed_Admin {
         add_action( 'admin_init', array( $this, 'register_settings' ) );
         
         // Add settings link on plugins page
-        add_filter( 'plugin_action_links_' . plugin_basename( WC_BUYADWISER_FEED_PLUGIN_DIR . 'wc-buyadwiser-feed.php' ), array( $this, 'add_settings_link' ) );
+        add_filter( 'plugin_action_links_' . plugin_basename( WC_BUYADWISER_FEED_PLUGIN_FILE ), array( $this, 'add_settings_link' ) );
         
         // Add manual cache clear action
         add_action( 'admin_init', array( $this, 'handle_manual_cache_clear' ) );
