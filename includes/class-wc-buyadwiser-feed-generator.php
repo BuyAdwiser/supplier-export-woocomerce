@@ -259,50 +259,71 @@ class WC_BuyAdwiser_Feed_Generator {
     protected function add_pricing_data( $product_node, $product ) {
         // Handle variable products differently
         if ( $product->is_type( 'variable' ) ) {
-            // Get price display strategy from WooCommerce settings
-            $price_display = get_option( 'woocommerce_product_price_display', 'min' );
+            // Try to get the default variation 
+            $default_attributes = $product->get_default_attributes();
+            $default_variation_id = null;
+            $default_variation = null;
             
-            // Default to 'min' if not set
-            if ( empty( $price_display ) ) {
-                $price_display = 'min';
+            // If default attributes are set, find the matching variation
+            if ( ! empty( $default_attributes ) ) {
+                $data_store = WC_Data_Store::load( 'product' );
+                $default_variation_id = $data_store->find_matching_product_variation( $product, $default_attributes );
+                
+                if ( $default_variation_id ) {
+                    $default_variation = wc_get_product( $default_variation_id );
+                }
             }
             
-            // Get prices based on store settings
-            if ( $price_display === 'min_max' ) {
-                // If store displays price range, use minimum for XML feed
-                $regular_price = $product->get_variation_regular_price( 'min' );
-                $sale_price = $product->get_variation_sale_price( 'min' );
-                
-                // Also include maximum prices as separate elements
-                $max_regular_price = $product->get_variation_regular_price( 'max' );
-                $max_sale_price = $product->get_variation_sale_price( 'max' );
-                
-                // Only add max prices if they differ from min
-                if ( $max_regular_price > $regular_price ) {
-                    $product_node->addChild( 'max_regular_price', esc_attr( wc_format_decimal( $max_regular_price, 2 ) ) );
+            // If we have a default variation, use its pricing
+            if ( $default_variation ) {
+                // Regular price
+                $regular_price = $default_variation->get_regular_price();
+                if ( ! empty( $regular_price ) ) {
+                    $product_node->addChild( 'regular_price', esc_attr( wc_format_decimal( $regular_price, 2 ) ) );
                 }
                 
-                if ( $max_sale_price > $sale_price ) {
-                    $product_node->addChild( 'max_sale_price', esc_attr( wc_format_decimal( $max_sale_price, 2 ) ) );
+                // Sale price
+                $sale_price = $default_variation->get_sale_price();
+                if ( ! empty( $sale_price ) ) {
+                    $product_node->addChild( 'sale_price', esc_attr( wc_format_decimal( $sale_price, 2 ) ) );
                 }
+                
+                // On sale status
+                $product_node->addChild( 'on_sale', $default_variation->is_on_sale() ? 'true' : 'false' );
+                
+                // Display price for the default variation
+                $display_price = wc_get_price_to_display( $default_variation );
+                $product_node->addChild( 'price', esc_attr( wc_format_decimal( $display_price, 2 ) ) );
             } else {
-                // Use default or min prices (since WooCommerce falls back to min if no default)
+                // Fall back to WooCommerce's default price display logic
+                $price_display = get_option( 'woocommerce_product_price_display', 'min' );
+                
+                // Default to 'min' if not set
+                if ( empty( $price_display ) ) {
+                    $price_display = 'min';
+                }
+                
+                // Get prices based on store settings
                 $regular_price = $product->get_variation_regular_price( $price_display );
                 $sale_price = $product->get_variation_sale_price( $price_display );
+                
+                // Add regular price
+                if ( ! empty( $regular_price ) ) {
+                    $product_node->addChild( 'regular_price', esc_attr( wc_format_decimal( $regular_price, 2 ) ) );
+                }
+                
+                // Add sale price
+                if ( ! empty( $sale_price ) && $sale_price < $regular_price ) {
+                    $product_node->addChild( 'sale_price', esc_attr( wc_format_decimal( $sale_price, 2 ) ) );
+                }
+                
+                // Set on_sale flag
+                $product_node->addChild( 'on_sale', $product->is_on_sale() ? 'true' : 'false' );
+                
+                // Display price (already includes tax settings)
+                $display_price = wc_get_price_to_display( $product );
+                $product_node->addChild( 'price', esc_attr( wc_format_decimal( $display_price, 2 ) ) );
             }
-            
-            // Add regular price
-            if ( ! empty( $regular_price ) ) {
-                $product_node->addChild( 'regular_price', esc_attr( wc_format_decimal( $regular_price, 2 ) ) );
-            }
-            
-            // Add sale price
-            if ( ! empty( $sale_price ) && $sale_price < $regular_price ) {
-                $product_node->addChild( 'sale_price', esc_attr( wc_format_decimal( $sale_price, 2 ) ) );
-            }
-            
-            // Set on_sale flag
-            $product_node->addChild( 'on_sale', $product->is_on_sale() ? 'true' : 'false' );
         } else {
             // Regular products (simple, variations, etc.)
             
@@ -320,11 +341,11 @@ class WC_BuyAdwiser_Feed_Generator {
             
             // On sale status
             $product_node->addChild( 'on_sale', $product->is_on_sale() ? 'true' : 'false' );
+            
+            // Current price including tax if applicable
+            $display_price = wc_get_price_to_display( $product );
+            $product_node->addChild( 'price', esc_attr( wc_format_decimal( $display_price, 2 ) ) );
         }
-        
-        // Current price including tax if applicable - works for all product types
-        $display_price = wc_get_price_to_display( $product );
-        $product_node->addChild( 'price', esc_attr( wc_format_decimal( $display_price, 2 ) ) );
         
         // Sale dates - only for non-variable products
         if ( ! $product->is_type( 'variable' ) ) {
