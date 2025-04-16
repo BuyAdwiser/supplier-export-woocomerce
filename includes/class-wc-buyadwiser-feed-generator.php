@@ -259,58 +259,50 @@ class WC_BuyAdwiser_Feed_Generator {
     protected function add_pricing_data( $product_node, $product ) {
         // Handle variable products differently
         if ( $product->is_type( 'variable' ) ) {
-            // Get all variations
-            $variations = $product->get_available_variations();
+            // Get price display strategy from WooCommerce settings
+            $price_display = get_option( 'woocommerce_product_price_display', 'min' );
             
-            if ( ! empty( $variations ) ) {
-                $regular_prices = array();
-                $sale_prices = array();
-                
-                // Collect all variation prices
-                foreach ( $variations as $variation ) {
-                    $variation_id = $variation['variation_id'];
-                    $variation_obj = wc_get_product( $variation_id );
-                    
-                    if ( $variation_obj ) {
-                        $regular_price = $variation_obj->get_regular_price();
-                        $sale_price = $variation_obj->get_sale_price();
-                        
-                        if ( ! empty( $regular_price ) ) {
-                            $regular_prices[] = (float) $regular_price;
-                        }
-                        
-                        if ( ! empty( $sale_price ) ) {
-                            $sale_prices[] = (float) $sale_price;
-                        } else if ( ! empty( $regular_price ) ) {
-                            // If no sale price, use regular price for min/max calculation
-                            $sale_prices[] = (float) $regular_price;
-                        }
-                    }
-                }
-                
-                // Get min regular price
-                if ( ! empty( $regular_prices ) ) {
-                    $min_regular_price = min( $regular_prices );
-                    $product_node->addChild( 'regular_price', esc_attr( wc_format_decimal( $min_regular_price, 2 ) ) );
-                }
-                
-                // Get min sale price
-                if ( ! empty( $sale_prices ) ) {
-                    $min_sale_price = min( $sale_prices );
-                    
-                    // Only add sale price if it's different from regular price
-                    if ( ! empty( $min_regular_price ) && $min_sale_price < $min_regular_price ) {
-                        $product_node->addChild( 'sale_price', esc_attr( wc_format_decimal( $min_sale_price, 2 ) ) );
-                    }
-                }
-                
-                // Set on_sale flag
-                $on_sale = false;
-                if ( ! empty( $min_sale_price ) && ! empty( $min_regular_price ) && $min_sale_price < $min_regular_price ) {
-                    $on_sale = true;
-                }
-                $product_node->addChild( 'on_sale', $on_sale ? 'true' : 'false' );
+            // Default to 'min' if not set
+            if ( empty( $price_display ) ) {
+                $price_display = 'min';
             }
+            
+            // Get prices based on store settings
+            if ( $price_display === 'min_max' ) {
+                // If store displays price range, use minimum for XML feed
+                $regular_price = $product->get_variation_regular_price( 'min' );
+                $sale_price = $product->get_variation_sale_price( 'min' );
+                
+                // Also include maximum prices as separate elements
+                $max_regular_price = $product->get_variation_regular_price( 'max' );
+                $max_sale_price = $product->get_variation_sale_price( 'max' );
+                
+                // Only add max prices if they differ from min
+                if ( $max_regular_price > $regular_price ) {
+                    $product_node->addChild( 'max_regular_price', esc_attr( wc_format_decimal( $max_regular_price, 2 ) ) );
+                }
+                
+                if ( $max_sale_price > $sale_price ) {
+                    $product_node->addChild( 'max_sale_price', esc_attr( wc_format_decimal( $max_sale_price, 2 ) ) );
+                }
+            } else {
+                // Use default or min prices (since WooCommerce falls back to min if no default)
+                $regular_price = $product->get_variation_regular_price( $price_display );
+                $sale_price = $product->get_variation_sale_price( $price_display );
+            }
+            
+            // Add regular price
+            if ( ! empty( $regular_price ) ) {
+                $product_node->addChild( 'regular_price', esc_attr( wc_format_decimal( $regular_price, 2 ) ) );
+            }
+            
+            // Add sale price
+            if ( ! empty( $sale_price ) && $sale_price < $regular_price ) {
+                $product_node->addChild( 'sale_price', esc_attr( wc_format_decimal( $sale_price, 2 ) ) );
+            }
+            
+            // Set on_sale flag
+            $product_node->addChild( 'on_sale', $product->is_on_sale() ? 'true' : 'false' );
         } else {
             // Regular products (simple, variations, etc.)
             
