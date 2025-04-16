@@ -392,39 +392,71 @@ class WC_BuyAdwiser_Feed_Generator {
         if ( ! empty( $attributes ) ) {
             $attributes_node = $product_node->addChild( 'attributes' );
             
-            foreach ( $attributes as $attribute ) {
-                if ( $attribute->get_visible() || ! $attribute->is_taxonomy() ) {
-                    $attr_node = $attributes_node->addChild( 'attribute' );
-                    $attr_name = $attribute->get_name();
-                    
-                    // Get proper name for taxonomy attributes
-                    if ( $attribute->is_taxonomy() ) {
-                        $taxonomy_name = $attribute->get_name(); // e.g., 'pa_color'
-                        $taxonomy_obj = get_taxonomy( $taxonomy_name );
+            foreach ( $attributes as $attribute_name => $attribute ) {
+                // Check if attribute is an object or a string
+                if ( is_object( $attribute ) ) {
+                    // Handle object-type attribute (WC_Product_Attribute)
+                    if ( $attribute->get_visible() || ! $attribute->is_taxonomy() ) {
+                        $attr_node = $attributes_node->addChild( 'attribute' );
+                        $attr_name = $attribute->get_name();
                         
-                        if ( $taxonomy_obj ) {
-                            $attr_name = $taxonomy_obj->labels->singular_name; // e.g., 'Color'
+                        // Get proper name for taxonomy attributes
+                        if ( $attribute->is_taxonomy() ) {
+                            $taxonomy_name = $attribute->get_name(); // e.g., 'pa_color'
+                            $taxonomy_obj = get_taxonomy( $taxonomy_name );
+                            
+                            if ( $taxonomy_obj ) {
+                                $attr_name = $taxonomy_obj->labels->singular_name; // e.g., 'Color'
+                            }
+                            
+                            $attr_node->addAttribute( 'taxonomy', $taxonomy_name );
                         }
                         
-                        $attr_node->addAttribute( 'taxonomy', $taxonomy_name );
+                        $attr_node->addAttribute( 'name', $attr_name );
+                        
+                        // Get attribute values
+                        $attr_values = $product->get_attribute( $attribute->get_name() );
+                        $attr_node->addChild( 'value' )->addCData( $attr_values );
+                        
+                        // Check for special attributes like brand or EAN
+                        if ( $attribute->get_name() === 'pa_brand' && ! isset( $product_node->brand ) ) {
+                            $product_node->addChild( 'brand' )->addCData( $attr_values );
+                        }
+                        
+                        if ( $attribute->get_name() === 'pa_ean' && ! isset( $product_node->ean ) ) {
+                            $product_node->addChild( 'ean', esc_attr( $attr_values ) );
+                        }
+                    }
+                } else {
+                    // Handle string-type attribute (older WooCommerce versions or variation attributes)
+                    $attr_node = $attributes_node->addChild( 'attribute' );
+                    
+                    // Try to get taxonomy info if it's a taxonomy attribute
+                    if ( taxonomy_exists( $attribute_name ) ) {
+                        $taxonomy_obj = get_taxonomy( $attribute_name );
+                        $attr_name = $taxonomy_obj ? $taxonomy_obj->labels->singular_name : $attribute_name;
+                        $attr_node->addAttribute( 'taxonomy', $attribute_name );
+                    } else {
+                        $attr_name = $attribute_name;
                     }
                     
                     $attr_node->addAttribute( 'name', $attr_name );
                     
-                    // Get attribute values
-                    $attr_values = $product->get_attribute( $attribute->get_name() );
+                    // Get attribute value
+                    $attr_values = $product->get_attribute( $attribute_name );
                     $attr_node->addChild( 'value' )->addCData( $attr_values );
                     
-                    // Check for special attributes like brand or EAN
-                    if ( $attribute->get_name() === 'pa_brand' && ! isset( $product_node->brand ) ) {
+                    // Check for special attributes
+                    if ( $attribute_name === 'pa_brand' && ! isset( $product_node->brand ) ) {
                         $product_node->addChild( 'brand' )->addCData( $attr_values );
                     }
                     
-                    if ( $attribute->get_name() === 'pa_ean' && ! isset( $product_node->ean ) ) {
+                    if ( $attribute_name === 'pa_ean' && ! isset( $product_node->ean ) ) {
                         $product_node->addChild( 'ean', esc_attr( $attr_values ) );
                     }
                 }
             }
+                    }
         }
         
         // Check for brand/EAN in custom fields if not found in attributes
