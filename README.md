@@ -1,8 +1,3 @@
-#### Variable Products Display Format
-
-- **Separate Products**: Each variation appears as a separate product in the feed (default)
-- **Nested Variations**: Variations appear as child elements within the parent product# WooCommerce BuyAdwiser XML Feed Generator
-
 A professional WordPress plugin that generates an optimized WooCommerce product XML feed for BuyAdwiser with caching and configuration options.
 
 ## Features
@@ -47,6 +42,11 @@ Navigate to **WooCommerce → BuyAdwiser Feed** to configure plugin settings:
 - **Enable Caching**: Toggle feed caching (recommended for performance)
 - **Cache Duration**: Set how long the feed should be cached (in minutes)
 - **Clear Cache**: Manually clear the cache when needed
+
+#### Variable Products Display Format
+
+- **Separate Products**: Each variation appears as a separate product in the feed (default)
+- **Nested Variations**: Variations appear as child elements within the parent product# WooCommerce BuyAdwiser XML Feed Generator
 
 ## XML Feed Format
 
